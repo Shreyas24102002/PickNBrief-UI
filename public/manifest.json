@@ -1,0 +1,24 @@
+{
+    "name": "PickNBrief",
+    "version": "1.0",
+    "manifest_version": 3,
+    "description": "An AI assistant which helps you to summarize and save important information from web pages quickly.",
+    "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
+    "action": {
+        "default_title": "PickNBrief"
+    },
+    "side_panel":{
+        "default_path": "index.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "host_permissions": [
+        "http://*/*",
+        "https://*/*",
+        "<all_urls>"
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self';"
+    }
+}
