@@ -31,18 +31,18 @@ declare const chrome: any;
 
 // --- Mock Data Service ---
 // In a real extension, this would communicate with your background script/content script
-const generateMockSummary = (): Promise<Summary> => {
-  return new Promise<Summary>((resolve) => {
-    setTimeout(() => {
-      resolve({
-        title: 'Understanding the Future of Artificial Intelligence',
-        url: 'https://example.com/article/future-of-ai',
-        content:
-          'Artificial Intelligence (AI) is rapidly transforming industries by automating complex tasks and providing deep data insights. Key takeaways include:\n\n• Generative AI is shifting from novelty to utility.\n• Ethical considerations regarding bias and privacy are becoming paramount.\n• Human-AI collaboration is the expected standard for the next decade, rather than full replacement.\n\nThis article suggests businesses must adapt their infrastructure now to accommodate these shifting paradigms.',
-      });
-    }, 2000); // Simulate API delay
-  });
-};
+// const generateMockSummary = (): Promise<Summary> => {
+//   return new Promise<Summary>((resolve) => {
+//     setTimeout(() => {
+//       resolve({
+//         title: 'Understanding the Future of Artificial Intelligence',
+//         url: 'https://example.com/article/future-of-ai',
+//         content:
+//           'Artificial Intelligence (AI) is rapidly transforming industries by automating complex tasks and providing deep data insights. Key takeaways include:\n\n• Generative AI is shifting from novelty to utility.\n• Ethical considerations regarding bias and privacy are becoming paramount.\n• Human-AI collaboration is the expected standard for the next decade, rather than full replacement.\n\nThis article suggests businesses must adapt their infrastructure now to accommodate these shifting paradigms.',
+//       });
+//     }, 2000); // Simulate API delay
+//   });
+// };
 
 export default function Sidepanel() {
   const [activeTab, setActiveTab] = useState<'capture' | 'library'>('capture');
@@ -96,7 +96,7 @@ export default function Sidepanel() {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/api/research/process', {
+      const response = await fetch('http://localhost:8080/picknbrief/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: result, operation: 'summarize' }),
@@ -104,7 +104,14 @@ export default function Sidepanel() {
 
       if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
-      const text = await response.text();
+      // Try to parse JSON and extract `result` field; fall back to raw text
+      let text: string;
+      try {
+        const data = await response.json();
+        text = typeof data === 'string' ? data : (data?.result ?? JSON.stringify(data));
+      } catch (e) {
+        text = await response.text();
+      }
 
       setCurrentSummary({ title: 'Selection Summary', url: tab?.url || '', content: text });
 
@@ -121,12 +128,7 @@ export default function Sidepanel() {
 
     } catch (err: any) {
       // fallback to mock summary if available
-      try {
-        const result = await generateMockSummary();
-        setCurrentSummary(result);
-      } catch (e) {
-        setCurrentSummary({ title: 'Error', url: '', content: 'Error: ' + (err?.message || String(err)) });
-      }
+      console.error('Summarization failed, using mock data', err, notes);
     } finally {
       setIsSummarizing(false);
     }
@@ -341,7 +343,17 @@ export default function Sidepanel() {
                       <Clock className="w-3 h-3" />
                       <span className="text-[10px]">{brief.date}</span>
                     </div>
-                    <button className="text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => {
+                        setCurrentSummary({
+                          title: brief.title,
+                          url: '',
+                          content: brief.fullContent ?? brief.snippet,
+                        });
+                        setActiveTab('capture');
+                      }}
+                      className="text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
                       View Full
                     </button>
                   </div>
